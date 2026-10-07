@@ -12,7 +12,7 @@
 - [x] 2.1 Criar migrações para cabeças de conversa, conversas, mensagens, execuções e partes de resposta com índices únicos e relações; verificar migração e rollback no PostgreSQL Docker e rejeição de duplicatas concorrentes.
 - [x] 2.2 Implementar aceitação transacional com bloqueio, ordem local, timestamp UTC e geração de conversa por intervalo de 600 segundos; verificar primeira entrada, 599 segundos, exatamente 600 segundos, duplicatas e nova geração com conversa antiga ainda ativa.
 - [ ] 2.3 Implementar despacho após commit e recuperação periódica de mensagens pendentes pelo scheduler; verificar crash simulado entre persistência/enqueue e que múltiplos despachos não criam execuções adicionais.
-- [ ] 2.4 Documentar regras de inatividade, ordenação e preservação do workspace; verificar que exemplos de atraso na fila e resposta tardia correspondem aos testes de conversa.
+- [x] 2.4 Documentar regras de inatividade, ordenação e preservação do workspace; verificar que exemplos de atraso na fila e resposta tardia correspondem aos testes de conversa.
 
 ## 3. Entrada WhatsApp autorizada
 
