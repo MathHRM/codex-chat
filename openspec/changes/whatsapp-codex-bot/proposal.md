@@ -29,4 +29,4 @@ Nenhuma; não existem especificações ou implementação anteriores.
 
 ## Impact
 
-Serão introduzidos Laravel, PostgreSQL, Redis, Evolution API e uma imagem de worker Laravel com Codex CLI e ferramentas de execução. Novos componentes: webhook, adaptador Evolution, jobs, estado de conversas/execuções/entregas, workspace e instruções, Dockerfiles, Compose e runbook Azure. A operação depende de uma conta ChatGPT com acesso ao Codex, pareamento da instância WhatsApp e conectividade de saída. Esta mudança cria somente os artefatos de planejamento; implementação e implantação ocorrerão em etapas posteriores.
+Serão introduzidos Laravel, PostgreSQL, Redis, Evolution API e um executor isolado com Codex CLI e ferramentas de execução. Novos componentes: webhook, adaptadores Evolution/executor, jobs, estado de conversas/execuções/entregas, workspace e instruções, Dockerfiles, Compose e runbook Azure. A operação depende de uma conta ChatGPT com acesso ao Codex, pareamento da instância WhatsApp e conectividade de saída. Esta mudança cria somente os artefatos de planejamento; implementação e implantação ocorrerão em etapas posteriores.
