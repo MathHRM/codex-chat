@@ -1,0 +1,21 @@
+{
+  "event": "messages.upsert",
+  "instance": "owner-bot",
+  "data": {
+    "key": {
+      "remoteJid": "5511999990000@s.whatsapp.net",
+      "fromMe": false,
+      "id": "EXAMPLE001"
+    },
+    "message": {
+      "conversation": "Crie um arquivo exemplo.txt"
+    },
+    "messageType": "conversation",
+    "messageTimestamp": 1700000000
+  },
+  "destination": "http://app:8000/api/webhooks/evolution",
+  "date_time": "2026-10-07T12:00:00Z",
+  "sender": "5511888880000@s.whatsapp.net",
+  "server_url": "http://evolution:8080",
+  "apikey": "fixture-only-not-a-secret"
+}
