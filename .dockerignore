@@ -1,0 +1,13 @@
+.git
+.agents
+.claude
+.env
+.env.*
+!.env.example
+vendor
+node_modules
+openspec
+storage/logs/*
+bootstrap/cache/*.php
+database/*.sqlite*
+.phpunit.cache

@@ -1,0 +1,163 @@
+name: whatsapp-codex-bot
+x-app: &app
+  image: whatsapp-codex-app:local
+  build:
+    context: .
+    dockerfile: docker/app/Dockerfile
+    target: production
+  restart: unless-stopped
+  init: true
+  environment: &app-env
+    APP_ENV: production
+    APP_DEBUG: 'false'
+    APP_KEY: ${APP_KEY:?Generate APP_KEY}
+    APP_URL: http://app:8000
+    LOG_CHANNEL: stderr
+    DB_CONNECTION: pgsql
+    DB_HOST: postgres
+    DB_PORT: 5432
+    DB_DATABASE: bot
+    DB_USERNAME: bot
+    DB_PASSWORD: ${APP_DB_PASSWORD:?Set APP_DB_PASSWORD}
+    CACHE_STORE: redis
+    QUEUE_CONNECTION: redis
+    SESSION_DRIVER: array
+    REDIS_HOST: redis
+    REDIS_PASSWORD: ${REDIS_PASSWORD:?Set REDIS_PASSWORD}
+    REDIS_DB: 0
+    REDIS_CACHE_DB: 1
+    BOT_OWNER_NUMBER: ${BOT_OWNER_NUMBER:?Set international owner number}
+    BOT_INSTANCE: ${BOT_INSTANCE:?Set BOT_INSTANCE}
+    EVOLUTION_URL: http://evolution:8080
+    EVOLUTION_API_KEY: ${EVOLUTION_API_KEY:?Set EVOLUTION_API_KEY}
+    WEBHOOK_SECRET: ${WEBHOOK_SECRET:?Set WEBHOOK_SECRET}
+    RUNNER_URL: http://codex-runner:8081
+    RUNNER_TOKEN: ${RUNNER_TOKEN:?Set RUNNER_TOKEN}
+    BOT_TIMEOUT_SECONDS: ${BOT_TIMEOUT_SECONDS:-300}
+    BOT_PROMPT_MAX_BYTES: ${BOT_PROMPT_MAX_BYTES:-16384}
+    BOT_RESPONSE_PART_CHARS: ${BOT_RESPONSE_PART_CHARS:-3000}
+  depends_on:
+    postgres: {condition: service_healthy}
+    redis: {condition: service_healthy}
+  volumes:
+    - app-storage:/app/storage
+  networks: [data]
+  security_opt: ['no-new-privileges:true']
+services:
+  app:
+    <<: *app
+    healthcheck:
+      test: ['CMD', 'php', '-r', 'exit(@file_get_contents("http://127.0.0.1:8000/up") === false ? 1 : 0);']
+      interval: 15s
+      timeout: 5s
+      retries: 5
+  worker:
+    <<: *app
+    command: ['php', 'artisan', 'queue:work', '--sleep=1', '--tries=1', '--timeout=0']
+    networks: [data, execution]
+    stop_grace_period: 330s
+  scheduler:
+    <<: *app
+    command: ['php', 'artisan', 'schedule:work']
+  codex-runner:
+    image: whatsapp-codex-runner:local
+    build: {context: ., dockerfile: docker/runner/Dockerfile}
+    restart: unless-stopped
+    init: true
+    environment:
+      RUNNER_TOKEN: ${RUNNER_TOKEN:?Set RUNNER_TOKEN}
+      BOT_TIMEOUT_SECONDS: ${BOT_TIMEOUT_SECONDS:-300}
+      BOT_PROMPT_MAX_BYTES: ${BOT_PROMPT_MAX_BYTES:-16384}
+      CODEX_HOME: /codex
+    networks: [execution]
+    volumes:
+      - workspace:/workspace
+      - runner-state:/state
+      - codex-session:/codex
+      - ./agent/AGENTS.md:/workspace/AGENTS.md:ro
+      - ./docker/runner/config.toml:/codex/config.toml:ro
+    read_only: true
+    tmpfs: ['/tmp:rw,nosuid,size=256m']
+    cap_drop: [ALL]
+    security_opt: ['no-new-privileges:true']
+    cpus: 2
+    mem_limit: 2g
+    pids_limit: 256
+    stop_grace_period: 330s
+    healthcheck:
+      test: ['CMD', 'php', '-r', 'exit(@file_get_contents("http://127.0.0.1:8081/health") === false ? 1 : 0);']
+      interval: 15s
+      timeout: 5s
+      retries: 5
+  evolution:
+    image: evoapicloud/evolution-api:v2.3.7@sha256:1bd8afc4a6cf48822e6cf02469aeae7bd35a12a6b616eacd1291926307f4d339
+    restart: unless-stopped
+    environment:
+      SERVER_URL: http://evolution:8080
+      SERVER_PORT: 8080
+      DATABASE_PROVIDER: postgresql
+      DATABASE_CONNECTION_URI: postgresql://evolution:${EVOLUTION_DB_PASSWORD:?Set EVOLUTION_DB_PASSWORD}@postgres:5432/evolution?schema=public
+      AUTHENTICATION_API_KEY: ${EVOLUTION_API_KEY:?Set EVOLUTION_API_KEY}
+      AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES: 'false'
+      CACHE_REDIS_ENABLED: 'true'
+      CACHE_REDIS_URI: redis://:${REDIS_PASSWORD:?Set REDIS_PASSWORD}@redis:6379/2
+      CACHE_REDIS_PREFIX_KEY: evolution
+      LOG_LEVEL: ERROR,WARN
+      LOG_BAILEYS: error
+      TELEMETRY_ENABLED: 'false'
+      SENTRY_DSN: ''
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
+    volumes: ['evolution-session:/evolution/instances']
+    networks: [data]
+    logging: {driver: none}
+    healthcheck:
+      test: ['CMD', 'node', '-e', 'fetch("http://127.0.0.1:8080/").then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))']
+      interval: 20s
+      timeout: 5s
+      retries: 10
+      start_period: 120s
+  postgres:
+    image: postgres:16.13-bookworm@sha256:472efd9a66f2b2f1a5aeb18b28de74332e6ef88c2b93a1a5d812fb6db67a5f60
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: administrator
+      POSTGRES_DB: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:?Set APP_DB_PASSWORD}
+      EVOLUTION_DB_PASSWORD: ${EVOLUTION_DB_PASSWORD:?Set EVOLUTION_DB_PASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sh:/docker-entrypoint-initdb.d/01-bot.sh:ro
+    networks: [data]
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U administrator -d postgres']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+  redis:
+    image: redis:7.4.8-bookworm@sha256:3e0669e42d4fe421c9dea0ba5fbc04d336b80b4f32a6c7d25bee3a1d089288a1
+    restart: unless-stopped
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?Set REDIS_PASSWORD}
+      REDISCLI_AUTH: ${REDIS_PASSWORD:?Set REDIS_PASSWORD}
+    command: ['sh', '-c', 'exec redis-server --appendonly yes --requirepass "$${REDIS_PASSWORD}"']
+    volumes: ['redis-data:/data']
+    networks: [data]
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+networks:
+  data: {}
+  execution: {}
+volumes:
+  app-storage: {}
+  postgres-data: {}
+  redis-data: {}
+  evolution-session: {}
+  workspace: {}
+  runner-state: {}
+  codex-session: {}
