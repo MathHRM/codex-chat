@@ -32,7 +32,7 @@ Na raiz do projeto, com `.env` configurado:
 sudo apparmor_parser -r docker/runner/apparmor.profile
 docker compose -f compose.yaml -f compose.sandbox.yaml build codex-runner
 docker compose -f compose.yaml -f compose.sandbox.yaml run --rm --no-deps \
-  --entrypoint codex codex-runner sandbox linux -- \
+  --entrypoint codex codex-runner sandbox -- \
   /bin/sh -c 'printf "sandbox-ok\n"'
 ```
 
@@ -55,6 +55,24 @@ override, mas não passou no teste de sandbox neste host.
   recusa de `sys_admin` em `unpriv_bwrap`. Não usar esse perfil como substituto.
 - Sintaxe do novo perfil: validada com `apparmor_parser --skip-kernel-load
   --skip-read-cache`. Compose com override: configuração validada.
-- Teste do conjunto preparado: pendente de carregar o perfil no kernel.
+- Perfil carregado pelo operador e teste do conjunto: passou, com `sandbox-ok`.
+- Teste com perfil explícito de permissões: escrita em `/workspace` passou;
+  escrita em `/state` foi negada; abertura de socket foi negada com `EPERM`.
+
+Na versão 0.160.1, `sandbox` recebe o comando diretamente, sem subcomando `linux`.
+O comando simples acima testa a criação do sandbox; para conferir escrita e rede,
+usar um perfil explícito, pois o teste sem perfil aplica filesystem somente leitura:
+
+```sh
+docker compose -f compose.yaml -f compose.sandbox.yaml run --rm --no-deps \
+  --entrypoint codex codex-runner sandbox \
+  -c 'permissions.check.filesystem={"/"="read",":project_roots"="write"}' \
+  -c 'permissions.check.network.enabled=false' -P check -C /workspace -- \
+  /bin/sh -c 'set -eu; touch /workspace/.sandbox-check; rm /workspace/.sandbox-check; if touch /state/.sandbox-check 2>/dev/null; then rm /state/.sandbox-check; exit 1; fi; printf "isolation-ok\n"'
+```
+
+A imagem disponibiliza o binário empacotado também como `codex-linux-sandbox`,
+nome usado pelo auxiliar Linux. Estes testes não validam uma execução autenticada
+nem a implementação futura do supervisor do runner.
 
 Esses testes locais não dependem de login ChatGPT nem pareamento WhatsApp.
