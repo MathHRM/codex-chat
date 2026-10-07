@@ -7,6 +7,9 @@ COPY --from=node /usr/local/bin/node /usr/local/bin/node
 COPY --from=node /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/npm
 RUN ln -s /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
  && npm install --global --ignore-scripts @openai/codex@0.160.1 \
+ && codex_binary="$(find /usr/local/lib/node_modules/@openai/codex/node_modules/@openai -path '*/vendor/*/bin/codex' -type f)" \
+ && test -n "$codex_binary" \
+ && ln -s "$codex_binary" /usr/local/bin/codex-linux-sandbox \
  && npm cache clean --force \
  && groupadd --gid 1000 agent \
  && useradd --uid 1000 --gid 1000 --create-home agent \
