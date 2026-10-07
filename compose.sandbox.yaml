@@ -1,0 +1,6 @@
+services:
+  codex-runner:
+    security_opt:
+      - no-new-privileges:true
+      - seccomp=./docker/runner/seccomp.json
+      - apparmor=whatsapp-codex-runner
