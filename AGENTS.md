@@ -1,121 +1,40 @@
-<laravel-boost-guidelines>
-=== foundation rules ===
+# Repository Guidelines
 
-# Laravel Boost Guidelines
+## Estrutura e organização
 
-## Foundational Context
+Este projeto conecta mensagens WhatsApp do proprietário à Evolution API e ao Codex CLI. O backend Laravel fica em `app/`: controllers recebem webhooks, services coordenam execuções e entregas, jobs processam filas e models persistem o estado. `runner/` contém a API e o supervisor PHP do Codex, separados do Laravel.
 
-This application is a Laravel application running on PHP 8.4. Always use the APIs that match the installed major version of each package — do not assume a version.
+Rotas ficam em `routes/`, configurações em `config/` e migrations em `database/`. Views, JavaScript e CSS ficam em `resources/`; arquivos públicos, em `public/`. `tests/Unit`, `tests/Feature` e `tests/Fixtures` concentram testes e serviços simulados. `docker/` e os arquivos Compose definem a infraestrutura. Consulte `docs/` para operação e `openspec/` para especificações. `agent/AGENTS.md` contém instruções do runner.
 
-Before relying on a package's API, confirm its installed version:
-- PHP packages: run `composer show --direct` to list direct dependencies with versions, or `composer show <vendor/package>` for a single package.
-- JS packages: check `package.json` for the installed versions.
+## Build, testes e desenvolvimento
 
-## Conventions
+O fluxo documentado exige Docker Engine e Compose; PHP e Composer são instalados nas imagens.
 
-- You must follow all existing code conventions used in this application. When creating or editing a file, check sibling files for the correct structure, approach, and naming.
-- Use descriptive names for variables and methods. For example, `isRegisteredForDiscounts`, not `discount()`.
-- Check for existing components to reuse before writing a new one.
+```sh
+docker build --target test -f docker/app/Dockerfile -t whatsapp-codex-app:test .
+docker run --rm whatsapp-codex-app:test
+```
 
-## Verification Scripts
+Esses comandos constroem a imagem de testes e executam a suíte Laravel. Para subir a stack, siga a configuração, o carregamento do AppArmor e a sequência do `README.md`.
 
-- Do not create verification scripts or tinker when tests cover that functionality and prove they work. Unit and feature tests are more important.
+Com dependências locais disponíveis, `composer test` limpa o cache de configuração e executa os testes; `vendor/bin/pint --test` verifica o estilo PHP. `npm run dev` inicia o Vite e `npm run build` gera os assets. Use `composer install` para preservar as versões do lockfile.
 
-## Application Structure & Architecture
+## Estilo e nomenclatura
 
-- Stick to existing directory structure; don't create new base folders without approval.
-- Do not change the application's dependencies without approval.
+Siga `.editorconfig`: UTF-8, LF, quatro espaços e newline final; YAML usa dois espaços, exceto arquivos Compose, com quatro. Mantenha o estilo Laravel/Pint, classes PascalCase e métodos camelCase. Adapte alterações aos padrões do arquivo existente.
 
-## Frontend Bundling
+## Diretrizes de testes
 
-- If a frontend change doesn't show in the UI or you get a "Unable to locate file in Vite manifest" error, run `npm run build` or ask the user to run `npm run dev` or `composer run dev`.
+A suíte usa PHPUnit 12, com SQLite em memória no ambiente padrão. Nomeie classes como `RunnerApiTest` e métodos descritivos `test_...`. Cubra comportamentos alterados, autenticação, duplicação e recuperação quando pertinentes. Não há limite percentual de cobertura configurado.
 
-## Documentation Files
+Siga `docs/docker-acceptance.md` para integração. Declare separadamente testes simulados e verificações com ChatGPT/WhatsApp reais.
 
-- You must only create documentation files if explicitly requested by the user.
+## Commits e pull requests
 
-=== boost rules ===
+O histórico usa Conventional Commits, como `feat(webhook): ...` e `test(docker): ...`. Use título curto e corpo com bullets para mudanças relevantes; não inclua Codex como coautor.
 
-# Laravel Boost
+Diretriz para PRs: descreva o diff completo contra a base correta, comportamento, áreas alteradas, testes executados e verificações pendentes. Vincule issues aplicáveis.
 
-## Project Rules
+## Segurança e configuração
 
-- This project contains committed, area-grouped rules in `.ai/rules` when that directory exists, including path-scoped framework guidelines under `.ai/rules/boost`. Before you enter plan mode or create/edit any file, you MUST first: open @.ai/rules/index.md (it maps file globs to rule files), read every rule file whose globs cover the path(s) in scope, and run `grep -rin 'keyword' .ai/rules` to catch what a path match alone misses. Do not write code until you have read and are following every matching rule. If `.ai/rules` does not exist, continue without it.
-
-## Artisan
-
-- Run Artisan commands directly via the command line (e.g., `php artisan route:list`). Use `php artisan list` to discover available commands and `php artisan [command] --help` to check parameters.
-- Inspect routes with `php artisan route:list`. Filter with: `--method=GET`, `--name=users`, `--path=api`, `--except-vendor`, `--only-vendor`.
-- Read configuration values using dot notation: `php artisan config:show app.name`, `php artisan config:show database.default`. Or read config files directly from the `config/` directory.
-
-## Tinker
-
-- Execute PHP in app context for debugging and testing code. Do not create models without user approval, prefer tests with factories instead. Prefer existing Artisan commands over custom tinker code.
-- Always use single quotes to prevent shell expansion: `php artisan tinker --execute 'Your::code();'`
-  - Double quotes for PHP strings inside: `php artisan tinker --execute 'User::where("active", true)->count();'`
-
-=== php rules ===
-
-# PHP
-
-- Always use curly braces for control structures, even for single-line bodies.
-- Use PHP 8 constructor property promotion: `public function __construct(public GitHub $github) { }`. Do not leave empty zero-parameter `__construct()` methods unless the constructor is private.
-- Use explicit return type declarations and type hints for all method parameters: `function isAccessible(User $user, ?string $path = null): bool`
-- Use TitleCase for Enum keys: `FavoritePerson`, `BestLake`, `Monthly`.
-- Prefer PHPDoc blocks over inline comments. Only add inline comments for exceptionally complex logic.
-- Use array shape type definitions in PHPDoc blocks.
-
-=== deployments rules ===
-
-# Deployment
-
-- Laravel can be deployed using [Laravel Cloud](https://cloud.laravel.com/), which is the fastest way to deploy and scale production Laravel applications.
-
-=== laravel/core rules ===
-
-# Do Things the Laravel Way
-
-- Use `php artisan make:` commands to create new files (i.e. migrations, controllers, models, etc.). You can list available Artisan commands using `php artisan list` and check their parameters with `php artisan [command] --help`.
-- If you're creating a generic PHP class, use `php artisan make:class`.
-- Pass `--no-interaction` to all Artisan commands to ensure they work without user input. You should also pass the correct `--options` to ensure correct behavior.
-
-### Model Creation
-
-- When creating new models, create useful factories and seeders for them too. Ask the user if they need any other things, using `php artisan make:model --help` to check the available options.
-
-## APIs & Eloquent Resources
-
-- For APIs, default to using Eloquent API Resources and API versioning unless existing API routes do not, then you should follow existing application convention.
-
-## URL Generation
-
-- When generating links to other pages, prefer named routes and the `route()` function.
-
-## Testing
-
-- When creating models for tests, use the factories for the models. Check if the factory has custom states that can be used before manually setting up the model.
-- Faker: Use methods such as `$this->faker->word()` or `fake()->randomDigit()`. Follow existing conventions whether to use `$this->faker` or `fake()`.
-- When creating tests, make use of `php artisan make:test [options] {name}` to create a feature test, and pass `--unit` to create a unit test. Most tests should be feature tests.
-
-=== pint/core rules ===
-
-# Laravel Pint Code Formatter
-
-- If you have modified any PHP files, you must run `vendor/bin/pint --dirty --format agent` before finalizing changes to ensure your code matches the project's expected style.
-- Do not run `vendor/bin/pint --test --format agent`, simply run `vendor/bin/pint --format agent` to fix any formatting issues.
-
-=== phpunit/core rules ===
-
-# PHPUnit
-
-- This project uses PHPUnit. Create tests with `php artisan make:test --phpunit {name}`.
-- Do not include the test suite directory in `{name}`. Use `SomeFeatureTest`, not `Feature/SomeFeatureTest`.
-- Read the `testing-best-practices` skill for guidance on coverage, naming, structure, dependency isolation, and review.
-
-## Running Tests
-
-- Run the narrowest set of tests that covers the change. Pass a file path or `--filter=testName` to `php artisan test --compact`.
-- Rerun a test after each change to it.
-- Run `vendor/bin/phpunit` to call the test runner directly. It accepts the same file path and `--filter=testName` arguments.
-
-</laravel-boost-guidelines>
+Nunca versione `.env` ou credenciais. Gere segredos independentes e valide com `php artisan bot:validate-config`. Não exponha a saída interpolada de Compose nem remova volumes com `down -v`.
