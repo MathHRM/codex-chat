@@ -24,6 +24,48 @@ Nenhuma credencial operacional é incluída na imagem.
 
 ## Configuração e stack local
 
+Para preparar a stack e conduzir as duas autenticações, execute no terminal:
+
+```sh
+./docker/setup.sh --owner 553195524319
+```
+
+O script carrega o perfil AppArmor com `sudo` (pode pedir sua senha), prepara
+`.env` com permissões `600` e segredos independentes, constrói as imagens, inicia
+os serviços, valida a configuração, aplica migrations e configura/verifica a
+instância e o webhook da Evolution. Depois conduz o login ChatGPT por código no
+navegador e exibe o QR do WhatsApp no terminal interativo. Também salva uma cópia
+em `.codex/setup/whatsapp-qr.png`, caso prefira abrir a imagem. Escaneie o QR
+em **Aparelhos conectados**, usando a conta WhatsApp do bot. Ela precisa
+ser diferente do número autorizado a enviar prompts no fluxo atual. Após o
+pareamento, pressione Enter para verificar a conexão e remover o QR.
+
+A primeira execução pode demorar por downloads e compilação; execuções seguintes
+aproveitam o cache. Para preparar o ambiente, o script reutiliza o PHP da imagem
+local da aplicação quando disponível; em uma instalação nova, baixa a imagem PHP
+fixada por digest. É possível repetir o setup: valores existentes de `.env`,
+sessões e volumes são preservados. Sem `--owner`, mantém o número configurado ou
+solicita um no terminal. Se houver volumes existentes e segredos ausentes, o
+script para e pede a restauração do `.env`; gerar novas senhas não recupera o banco.
+Os nomes de projeto/ambiente podem ser definidos com `COMPOSE_PROJECT_NAME` e
+`BOT_ENV_FILE`, como nos scripts de operação.
+
+```sh
+# Preparar a infraestrutura e deixar as autenticações para depois:
+./docker/setup.sh --owner 553195524319 --skip-login --skip-pairing
+# Renovar somente o QR, com a stack já iniciada:
+./docker/setup.sh --qr-only
+./docker/setup.sh --help
+```
+
+O QR é temporário e sensível: remova-o depois do uso se adiar a verificação.
+O script não retoma automaticamente um bot pausado. Os detalhes e requisitos do
+login estão em [docs/runner-login.md](docs/runner-login.md); a compatibilidade do
+host está em [docs/runner-sandbox.md](docs/runner-sandbox.md). `composer setup`
+prepara somente o Laravel e não substitui este setup Docker.
+
+Para executar cada etapa manualmente, siga os comandos abaixo.
+
 Copie `.env.example` para `.env`. Preencha o número internacional do proprietário
 (somente dígitos) e a instância. Gere valores independentes para cada segredo;
 senhas de banco/Redis devem usar hexadecimal para composição segura das URIs.
@@ -46,7 +88,7 @@ entram no runner, exceto seu token dedicado. Não publique a saída de
 ```sh
 sudo apparmor_parser -r docker/runner/apparmor.profile
 docker compose -f compose.yaml -f compose.sandbox.yaml config --quiet
-docker compose -f compose.yaml -f compose.sandbox.yaml build
+docker compose -f compose.yaml -f compose.sandbox.yaml build app codex-runner
 docker compose -f compose.yaml -f compose.sandbox.yaml up -d --wait postgres redis codex-runner evolution app
 docker compose -f compose.yaml -f compose.sandbox.yaml exec app php artisan bot:validate-config --no-interaction
 docker compose -f compose.yaml -f compose.sandbox.yaml exec app php artisan migrate --force --no-interaction
