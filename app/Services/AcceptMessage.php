@@ -2,11 +2,14 @@
 
 namespace App\Services;
 
+use App\Jobs\PrepareExecution;
 use App\Models\Conversation;
 use App\Models\ConversationHead;
 use App\Models\InboundMessage;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 final class AcceptMessage
 {
@@ -40,6 +43,14 @@ final class AcceptMessage
             ]);
             $conversation->update(['last_accepted_at' => $now]);
             $head->update(['current_conversation_id' => $conversation->id, 'next_order' => $order, 'last_accepted_at' => $now]);
+
+            DB::afterCommit(function () use ($message): void {
+                try {
+                    PrepareExecution::dispatch($message->id);
+                } catch (Throwable) {
+                    Log::warning('bot.dispatch_pending', ['message_id' => $message->id]);
+                }
+            });
 
             return $message;
         }, attempts: 5);

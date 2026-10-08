@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Models\Conversation;
 use App\Models\ConversationHead;
-use App\Models\Execution;
 use App\Models\InboundMessage;
 use App\Services\AcceptMessage;
 use Carbon\CarbonImmutable;
@@ -77,7 +76,8 @@ class ConversationPolicyTest extends TestCase
     {
         CarbonImmutable::setTestNow('2026-10-07 12:00:00 UTC');
         $first = app(AcceptMessage::class)->accept($this->input('old'));
-        $execution = Execution::factory()->create(['inbound_message_id' => $first->id, 'status' => 'running']);
+        $execution = $first->execution;
+        $execution->update(['status' => 'running']);
         CarbonImmutable::setTestNow('2026-10-07 12:10:00 UTC');
         $new = app(AcceptMessage::class)->accept($this->input('new'));
         $this->assertNotSame($first->conversation_id, $new->conversation_id);
