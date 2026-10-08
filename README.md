@@ -19,7 +19,7 @@ docker run --rm whatsapp-codex-app:test
 ```
 
 O target `production` instala somente dependências de produção e executa como
-`www-data`. A configuração completa do Compose será adicionada nas próximas tarefas.
+`www-data`. Compose inclui app, worker, scheduler, runner, Evolution, PostgreSQL e Redis.
 Nenhuma credencial operacional é incluída na imagem.
 
 ## Configuração e stack local
@@ -44,17 +44,18 @@ entram no runner, exceto seu token dedicado. Não publique a saída de
 `docker compose config` sem `--quiet`, pois contém variáveis interpoladas.
 
 ```sh
-docker compose config --quiet
-docker compose build
-docker compose up -d postgres redis codex-runner evolution app
-docker compose exec app php artisan bot:validate-config
-docker compose exec app php artisan migrate --force
-docker compose up -d worker scheduler
-docker compose ps
+sudo apparmor_parser -r docker/runner/apparmor.profile
+docker compose -f compose.yaml -f compose.sandbox.yaml config --quiet
+docker compose -f compose.yaml -f compose.sandbox.yaml build
+docker compose -f compose.yaml -f compose.sandbox.yaml up -d --wait postgres redis codex-runner evolution app
+docker compose -f compose.yaml -f compose.sandbox.yaml exec app php artisan bot:validate-config --no-interaction
+docker compose -f compose.yaml -f compose.sandbox.yaml exec app php artisan migrate --force --no-interaction
+docker compose -f compose.yaml -f compose.sandbox.yaml up -d --wait worker scheduler
+docker compose -f compose.yaml -f compose.sandbox.yaml ps
 ```
 
 O stack não publica portas. Webhook e APIs comunicam-se pela rede Docker;
-administração via túnel será detalhada no runbook Azure. Volumes preservam banco,
+administração via túnel está descrita no runbook Azure. Volumes preservam banco,
 Redis, workspace, estado do runner e sessões Codex/Evolution. Não use `down -v`.
 Alterar as senhas de `.env` não altera usuários já criados no volume PostgreSQL;
 faça rotação coordenada no banco e na configuração.
@@ -62,7 +63,19 @@ faça rotação coordenada no banco e na configuração.
 Timeout aceita 1 a 3600 segundos; prompt até 16.384 bytes UTF-8 e partes de resposta
 até 3.000 caracteres Unicode. Inatividade permanece 600 segundos. O comando
 `bot:validate-config` rejeita valores ausentes/fora dos limites sem mostrar seus
-conteúdos. O fluxo completo do bot está em implementação e ainda não deve ser
-usado com mensagens reais.
+conteúdos. O runner exige as instruções versionadas em `agent/AGENTS.md`, montadas
+somente para leitura, e mantém um workspace Git persistente. O host precisa ser
+compatível com os perfis descritos em [docs/runner-sandbox.md](docs/runner-sandbox.md).
+
+O fluxo completo é validado com serviços simulados. O smoke com conta ChatGPT e
+WhatsApp reais depende de login e pareamento ainda não disponibilizados.
+
+- [Login ChatGPT no runner](docs/runner-login.md)
+- [Operação em VPS Azure](docs/azure-runbook.md)
+- [Recuperação de execuções](docs/execution-recovery.md)
+- [Reconciliação de entregas](docs/delivery-recovery.md)
+- [Backup e restauração](docs/backup-restore.md)
+- [Validação integrada Docker](docs/docker-acceptance.md)
+- [Relatório de aceite](docs/implementation-status.md)
 
 Contrato e limitações da versão Evolution: [docs/evolution-contract.md](docs/evolution-contract.md).
