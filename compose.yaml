@@ -55,10 +55,22 @@ services:
     <<: *app
     command: ['php', 'artisan', 'queue:work', '--sleep=1', '--tries=1', '--timeout=0']
     networks: [data, execution]
-    stop_grace_period: 330s
+    stop_grace_period: 3720s
+    healthcheck:
+      test: ['CMD', 'php', 'artisan', 'bot:health', 'worker', '--no-interaction']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 120s
   scheduler:
     <<: *app
     command: ['php', 'artisan', 'schedule:work']
+    healthcheck:
+      test: ['CMD', 'php', 'artisan', 'bot:health', 'scheduler', '--no-interaction']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 120s
   codex-runner:
     image: whatsapp-codex-runner:local
     build: {context: ., dockerfile: docker/runner/Dockerfile}
@@ -83,7 +95,7 @@ services:
     cpus: 2
     mem_limit: 2g
     pids_limit: 256
-    stop_grace_period: 330s
+    stop_grace_period: 3720s
     healthcheck:
       test: ['CMD', 'php', '-r', 'exit(@file_get_contents("http://127.0.0.1:8081/health") === false ? 1 : 0);']
       interval: 15s
