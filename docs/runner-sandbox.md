@@ -73,6 +73,7 @@ docker compose -f compose.yaml -f compose.sandbox.yaml run --rm --no-deps \
 
 A imagem disponibiliza o binário empacotado também como `codex-linux-sandbox`,
 nome usado pelo auxiliar Linux. Estes testes não validam uma execução autenticada
-nem a implementação futura do supervisor do runner.
+nem uma execução do modelo autenticada. O supervisor é validado separadamente
+por testes de processo e pelo fluxo Docker com CLI simulada.
 
 Esses testes locais não dependem de login ChatGPT nem pareamento WhatsApp.
