@@ -57,10 +57,19 @@ final class EvolutionContract
 
     public function sendText(string $text): Response
     {
+        return $this->sendTextTo($text, $this->instance, $this->ownerNumber);
+    }
+
+    public function sendTextTo(string $text, string $instance, string $number): Response
+    {
+        if ($instance !== $this->instance || $number !== $this->ownerNumber) {
+            throw new \InvalidArgumentException('Destino não autorizado.');
+        }
+
         return Http::withHeaders(['apikey' => $this->apiKey])
             ->acceptJson()->timeout(15)->connectTimeout(5)
-            ->post(rtrim($this->baseUrl, '/').'/message/sendText/'.rawurlencode($this->instance), [
-                'number' => $this->ownerNumber,
+            ->post(rtrim($this->baseUrl, '/').'/message/sendText/'.rawurlencode($instance), [
+                'number' => $number,
                 'text' => $text,
                 'linkPreview' => false,
             ]);
