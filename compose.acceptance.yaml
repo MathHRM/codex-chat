@@ -1,0 +1,35 @@
+# Use only with a fresh isolated project and tests/Fixtures/acceptance.env.
+services:
+  codex-runner:
+    environment:
+      PATH: /fixtures:/usr/local/bin:/usr/bin:/bin
+    volumes:
+      - ./tests/Fixtures/codex:/fixtures/codex:ro
+  evolution:
+    image: whatsapp-codex-app:local
+    user: root
+    entrypoint: [sh, -c]
+    command: ['mkdir -p /evolution/instances; exec php -S 0.0.0.0:8080 /fixture/http.php']
+    environment:
+      PHP_CLI_SERVER_WORKERS: 4
+    volumes:
+      - ./tests/Fixtures/evolution/http.php:/fixture/http.php:ro
+    healthcheck:
+      test: ['CMD', 'php', '-r', 'exit(@file_get_contents("http://127.0.0.1:8080/") === false ? 1 : 0);']
+      start_period: 5s
+  acceptance:
+    extends: {file: compose.yaml, service: worker}
+    image: whatsapp-codex-app:test
+    build: {context: ., dockerfile: docker/app/Dockerfile, target: test}
+    restart: 'no'
+    environment:
+      DOCKER_ACCEPTANCE: '1'
+    volumes:
+      - ./tests:/app/tests:ro
+      - ./tests/Fixtures/acceptance.env:/app/.env:ro
+      - workspace:/acceptance-workspace:ro
+      - runner-state:/acceptance-state:ro
+      - codex-session:/acceptance-codex:ro
+      - evolution-session:/acceptance-evolution:ro
+    command: [php, artisan, test, --compact, tests/Feature/DockerAcceptanceTest.php, --filter=test_core_flow_with_real_http_database_queue_and_runner]
+    healthcheck: {disable: true}

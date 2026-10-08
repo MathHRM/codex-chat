@@ -1,0 +1,29 @@
+#!/usr/local/bin/php
+<?php
+$prompt = stream_get_contents(STDIN);
+$sessionPosition = array_search('resume', $argv, true);
+$resuming = $sessionPosition !== false;
+$outputPosition = array_search('--output-last-message', $argv, true);
+$session = $resuming ? $argv[count($argv) - 2] : null;
+if (! $resuming) {
+    $hex = bin2hex(random_bytes(16));
+    $session = substr($hex, 0, 8).'-'.substr($hex, 8, 4).'-4'.substr($hex, 13, 3).'-a'.substr($hex, 17, 3).'-'.substr($hex, 20, 12);
+}
+if ($resuming && ! is_file('/codex/'.$session.'.fixture')) {
+    fwrite(STDERR, 'session not found'); exit(1);
+}
+if (! str_contains((string) file_get_contents('AGENTS.md'), 'português')) {
+    fwrite(STDERR, 'instructions missing'); exit(1);
+}
+$run = getenv('BOT_RUN_ID');
+file_put_contents('effects.jsonl', json_encode(['run_id' => $run, 'session_id' => $session, 'resume' => $resuming, 'instructions' => true])."\n", FILE_APPEND | LOCK_EX);
+file_put_contents('acceptance.txt', 'Arquivo alterado pelo agente simulado.');
+file_put_contents('/codex/'.$session.'.fixture', 'persisted session');
+chmod('/codex/'.$session.'.fixture', 0600);
+if ($prompt === 'crash-after-effect') {
+    while (true) { usleep(100000); }
+}
+file_put_contents($argv[$outputPosition + 1], 'Concluído 😀 '.$prompt);
+echo json_encode(['type' => 'thread.started', 'thread_id' => $session])."\n";
+echo json_encode(['type' => 'item.completed', 'item' => ['type' => 'command_execution', 'output' => 'PRIVATE_TOOL_LOG']])."\n";
+echo json_encode(['type' => 'turn.completed'])."\n";
