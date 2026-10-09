@@ -65,6 +65,13 @@ do proprietário e configure `BOT_OWNER_NUMBER` com esse mesmo número internaci
 somente dígitos. Também é possível manter uma conta separada para o bot. Os comandos
 usam o PHP da imagem app e a rede Docker, sem publicar a API administrativa.
 
+O filtro aceita celulares brasileiros com e sem o nono dígito: `55` + DDD +
+oito dígitos iniciados em 6 a 9, ou essa mesma forma com um `9` após o DDD.
+A equivalência também vale para `remoteJidAlt` quando o WhatsApp usa LID.
+Outros países, números fixos e diferenças nos demais dígitos não recebem essa
+equivalência. O número configurado continua sendo a identidade persistida e o
+destino enviado à Evolution.
+
 Crie a instância apenas uma vez. Se já existir, pule a chamada `/instance/create`
 no bloco abaixo e mantenha as chamadas de configuração/verificação. Não exclua
 uma instância operacional para corrigir configuração.

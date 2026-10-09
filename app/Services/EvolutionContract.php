@@ -37,7 +37,8 @@ final class EvolutionContract
         if (preg_match('/^\d+@lid$/D', $jid) === 1) {
             $jid = $key['remoteJidAlt'] ?? null;
         }
-        if ($jid !== $this->ownerNumber.'@s.whatsapp.net') {
+        if (! is_string($jid) || ! str_ends_with($jid, '@s.whatsapp.net')
+            || $this->normalizeNumber(substr($jid, 0, -strlen('@s.whatsapp.net'))) !== $this->normalizeNumber($this->ownerNumber)) {
             return null;
         }
         $message = $data['message'] ?? null;
@@ -59,6 +60,15 @@ final class EvolutionContract
         }
 
         return ['external_id' => $id, 'instance' => $this->instance, 'number' => $this->ownerNumber, 'text' => $text];
+    }
+
+    private function normalizeNumber(string $number): string
+    {
+        if (preg_match('/^55[1-9][0-9]9[6-9][0-9]{7}$/D', $number) === 1) {
+            return substr($number, 0, 4).substr($number, 5);
+        }
+
+        return $number;
     }
 
     public function sendText(string $text): Response

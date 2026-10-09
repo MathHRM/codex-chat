@@ -158,6 +158,47 @@ class EvolutionWebhookTest extends TestCase
         $this->assertDatabaseCount('inbound_messages', 1);
     }
 
+    public static function numberVariants(): array
+    {
+        return [
+            'configured with ninth digit' => ['5511999990000', '551199990000', false, true],
+            'configured without ninth digit' => ['551199990000', '5511999990000', false, true],
+            'lid without ninth digit' => ['5511999990000', '551199990000', true, true],
+            'lid with ninth digit' => ['551199990000', '5511999990000', true, true],
+            'different subscriber' => ['5511999990000', '551199990001', false, false],
+            'different area code' => ['5511999990000', '552199990000', false, false],
+            'different country' => ['5511999990000', '541199990000', false, false],
+            'landline' => ['5511933330000', '551133330000', false, false],
+            'foreign ninth digit' => ['5411999990000', '541199990000', false, false],
+            'unmapped lid' => ['5511999990000', '551199990000', true, false],
+        ];
+    }
+
+    #[DataProvider('numberVariants')]
+    public function test_number_variants_preserve_owner_authorization(string $owner, string $sender, bool $lid, bool $accepted): void
+    {
+        config(['bot.owner_number' => $owner]);
+        $payload = $this->payload();
+        $payload['data']['key']['remoteJid'] = $sender.'@s.whatsapp.net';
+        if ($lid) {
+            $payload['data']['key']['remoteJid'] = '123@lid';
+            if ($accepted) {
+                $payload['data']['key']['remoteJidAlt'] = $sender.'@s.whatsapp.net';
+            }
+        }
+
+        $this->postJson('/api/v1/webhooks/evolution', $payload, ['X-Webhook-Secret' => str_repeat('w', 32)])
+            ->assertAccepted()->assertJsonPath('status', $accepted ? 'accepted' : 'ignored');
+        $this->assertDatabaseCount('inbound_messages', $accepted ? 1 : 0);
+        if ($accepted) {
+            $this->assertSame($owner, InboundMessage::sole()->head->number);
+            Queue::assertPushed(PrepareExecution::class, 1);
+        } else {
+            Queue::assertNothingPushed();
+        }
+        Http::assertNothingSent();
+    }
+
     public function test_concurrent_webhook_receipts_persist_one_message(): void
     {
         if (DB::connection()->getDriverName() !== 'pgsql' || ! function_exists('pcntl_fork')) {
