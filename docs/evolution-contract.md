@@ -172,6 +172,30 @@ runner e entrega estiverem completos, envie texto privado do número autorizado
 e confirme persistência e resposta. Outro número deve produzir zero mensagens,
 conversas e respostas. Os testes HTTP verificam esses filtros sem conta real.
 
+### WhatsApp recusa o pareamento pelo QR
+
+Se o telefone exibir **“Não foi possível conectar o dispositivo, tente novamente
+mais tarde”**, mesmo com a Evolution saudável, reinicie somente esse serviço e
+gere um novo QR:
+
+```sh
+docker compose restart evolution
+./docker/setup.sh --qr-only
+```
+
+Escaneie imediatamente o novo QR exibido no terminal ou salvo em
+`.codex/setup/whatsapp-qr.png`. A imagem é estática e não acompanha a renovação
+do QR pela Evolution. Confirme depois que o estado da instância é `open`, usando
+a consulta acima. O reinício preserva os volumes e a instância cadastrada.
+
+Ocorrência local em 2026-10-08, com Evolution 2.3.7: a instância `owner-bot`
+estava em `connecting` e depois passou para `close`, embora o serviço estivesse
+saudável. Após reiniciar a Evolution e gerar outro QR, o usuário confirmou que
+o pareamento funcionou. Sessão de pareamento travada ou QR expirado são hipóteses
+(inferred); a causa exata não foi confirmada, pois os logs da Evolution estavam
+desabilitados conforme a política acima. Essa confirmação cobre o pareamento;
+não valida o fluxo completo de mensagens com o runner.
+
 Verificação local em 2026-10-07: imagem 2.3.7, instância temporária criada (201),
 webhook configurado (201) e consultado (200), incluindo header, URL e eventos;
 `connect` (200) retornou QR e estado `connecting`; a instância temporária foi
