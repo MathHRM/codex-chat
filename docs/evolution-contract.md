@@ -25,12 +25,21 @@ Identidade privada requer `<numero>@s.whatsapp.net` com número internacional
 somente dígitos. A release converte LID usando `key.remoteJidAlt`, fornecido
 pela conexão Baileys. O adaptador aceita esse mapeamento somente dentro do
 webhook autenticado da instância configurada; LID sem alternativa privada
-correspondente ao proprietário é ignorado. Mensagens próprias, grupos, status,
-broadcasts e anexos/legendas são ignorados. Somente tipos `conversation` e
+correspondente ao proprietário é ignorado. Mensagens do proprietário são aceitas
+com `fromMe: true` ou `false`, permitindo usar a conversa consigo mesmo. Grupos,
+status, broadcasts e anexos/legendas são ignorados. Somente tipos `conversation` e
 `extendedTextMessage` são prompts.
 
+Todas as mensagens enviadas pelo projeto recebem o prefixo reservado
+`🤖 Codex:` seguido de uma quebra de linha, inclusive avisos e cada parte de
+respostas longas. O ingresso ignora textos que começam com esse marcador
+(desconsiderando espaços iniciais), independentemente de `fromMe`. Isso evita
+loops mesmo se o webhook chegar antes da confirmação HTTP do envio. O marcador
+é uma convenção de identificação, não autenticação; o proprietário não deve
+usá-lo no início de prompts.
+
 Envio: `POST /message/sendText/{instance}`, header `apikey`, JSON
-`{"number":"<numero>","text":"<resposta>","linkPreview":false}`. Rota retorna
+`{"number":"<numero>","text":"🤖 Codex:\n<resposta>","linkPreview":false}`. Rota retorna
 201 e objeto da mensagem com `key.id`. Aceitação não confirma entrega no telefone.
 Não há retry automático no adaptador: a orquestração precisa distinguir falha
 confirmada de resultado incerto antes de autorizar novo envio.
@@ -51,8 +60,9 @@ produzidos pelo Laravel/runner. Não habilite logs brutos da Evolution em produ�
 ## Criar instância e configurar webhook
 
 Execute no diretório do projeto após configurar `.env`, subir as dependências
-com Compose e migrar o banco. A conta pareada é a conta do bot; o proprietário
-envia prompts de outro número, pois mensagens `fromMe` são ignoradas. Os comandos
+com Compose e migrar o banco. Para usar a conversa consigo mesmo, pareie a conta
+do proprietário e configure `BOT_OWNER_NUMBER` com esse mesmo número internacional,
+somente dígitos. Também é possível manter uma conta separada para o bot. Os comandos
 usam o PHP da imagem app e a rede Docker, sem publicar a API administrativa.
 
 Crie a instância apenas uma vez. Se já existir, pule a chamada `/instance/create`

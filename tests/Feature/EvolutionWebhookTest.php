@@ -6,6 +6,7 @@ use App\Jobs\PrepareExecution;
 use App\Models\ConversationHead;
 use App\Models\InboundMessage;
 use App\Models\OutboundPart;
+use App\Services\EvolutionContract;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -66,6 +67,38 @@ class EvolutionWebhookTest extends TestCase
         Http::assertNothingSent();
     }
 
+    public function test_self_message_is_accepted_once_and_bot_echo_is_ignored_during_send(): void
+    {
+        $payload = $this->payload();
+        $payload['data']['key']['fromMe'] = true;
+        $headers = ['X-Webhook-Secret' => str_repeat('w', 32)];
+        $this->postJson('/api/v1/webhooks/evolution', $payload, $headers)
+            ->assertAccepted()->assertJsonPath('status', 'accepted');
+        $this->postJson('/api/v1/webhooks/evolution', $payload, $headers)
+            ->assertAccepted()->assertJsonPath('status', 'accepted');
+
+        Http::fake(function ($request) use ($payload, $headers) {
+            $this->assertSame("🤖 Codex:\nResposta", $request['text']);
+            $payload['data']['key']['id'] = 'BOT-RESPONSE';
+            $payload['data']['messageType'] = 'extendedTextMessage';
+            $payload['data']['message'] = ['extendedTextMessage' => ['text' => $request['text']]];
+            foreach ([true, false] as $fromMe) {
+                $payload['data']['key']['fromMe'] = $fromMe;
+                $this->postJson('/api/v1/webhooks/evolution', $payload, $headers)
+                    ->assertAccepted()->assertJsonPath('status', 'ignored');
+            }
+
+            return Http::response(['key' => ['id' => 'BOT-RESPONSE']], 201);
+        });
+        app(EvolutionContract::class)->sendText('Resposta');
+
+        $this->assertDatabaseCount('inbound_messages', 1);
+        $this->assertDatabaseCount('conversations', 1);
+        $this->assertDatabaseCount('outbound_parts', 0);
+        Queue::assertPushed(PrepareExecution::class, 1);
+        Http::assertSentCount(1);
+    }
+
     public function test_prompt_whitespace_is_preserved(): void
     {
         $payload = $this->payload();
@@ -93,7 +126,7 @@ class EvolutionWebhookTest extends TestCase
         return [
             'other instance' => ['instance', 'other'],
             'other event' => ['event', 'messages.update'],
-            'self' => ['data.key.fromMe', true],
+            'bot response' => ['data.message.conversation', "🤖 Codex:\nResposta"],
             'other sender' => ['data.key.remoteJid', '5511222222222@s.whatsapp.net'],
             'unmapped lid' => ['data.key.remoteJid', '123@lid'],
             'group' => ['data.key.remoteJid', '123@g.us'],

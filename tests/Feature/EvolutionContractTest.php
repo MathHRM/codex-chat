@@ -38,7 +38,9 @@ class EvolutionContractTest extends TestCase
         return [
             'other instance' => ['instance', 'other'],
             'other event' => ['event', 'messages.update'],
-            'self' => ['data.key.fromMe', true],
+            'bot response' => ['data.message.conversation', "🤖 Codex:\nResposta"],
+            'bot response with leading whitespace' => ['data.message.conversation', "  🤖 Codex:\nResposta"],
+            'invalid sender direction' => ['data.key.fromMe', 'true'],
             'missing sender direction' => ['data.key.fromMe', null],
             'other number' => ['data.key.remoteJid', '5511222222222@s.whatsapp.net'],
             'unmapped lid' => ['data.key.remoteJid', '987654321@lid'],
@@ -77,7 +79,7 @@ class EvolutionContractTest extends TestCase
         $this->assertSame('OUT001', $response->json('key.id'));
         Http::assertSent(fn (Request $request): bool => $request->url() === 'http://evolution:8080/message/sendText/owner-bot'
             && $request->hasHeader('apikey', 'fixture-key')
-            && $request->data() === ['number' => '5511999990000', 'text' => 'Resposta 😀', 'linkPreview' => false]);
+            && $request->data() === ['number' => '5511999990000', 'text' => "🤖 Codex:\nResposta 😀", 'linkPreview' => false]);
         Http::assertSentCount(1);
     }
 }

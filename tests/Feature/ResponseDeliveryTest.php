@@ -53,7 +53,8 @@ class ResponseDeliveryTest extends TestCase
         Http::swap(new Factory);
         Http::preventStrayRequests();
         Http::fake(function ($request) use (&$sent) {
-            $sent[] = $request['text'];
+            $this->assertStringStartsWith("🤖 Codex:\n", $request['text']);
+            $sent[] = mb_substr($request['text'], mb_strlen("🤖 Codex:\n"));
             $this->assertSame('http://evolution:8080/message/sendText/owner-bot', $request->url());
             $this->assertSame('5511999990000', $request['number']);
 

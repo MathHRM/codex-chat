@@ -52,7 +52,7 @@ class DockerAcceptanceTest extends TestCase
         $this->assertSame([false, true, false], array_column($effects, 'resume'));
         $this->assertSame([true, true, true], array_column($effects, 'instructions'));
         $sent = Http::get('http://evolution:8080/_test/status')->json('sent');
-        $this->assertSame(['Concluído 😀 first', 'Concluído 😀 followup', 'Concluído 😀 reset'], array_column($sent, 'text'));
+        $this->assertSame(["🤖 Codex:\nConcluído 😀 first", "🤖 Codex:\nConcluído 😀 followup", "🤖 Codex:\nConcluído 😀 reset"], array_column($sent, 'text'));
         $this->assertSame(['5511999990000'], array_values(array_unique(array_column($sent, 'number'))));
     }
 
@@ -85,7 +85,7 @@ class DockerAcceptanceTest extends TestCase
         $this->await(fn () => $message->fresh()->status === 'succeeded' && OutboundPart::where('execution_id', $message->execution->id)->where('status', 'uncertain')->exists());
         $part = OutboundPart::where('execution_id', $message->execution->id)->sole();
         $this->assertSame('evolution_timeout', $part->error_code);
-        $accepted = array_values(array_filter(Http::get('http://evolution:8080/_test/status')->json('sent'), fn ($sent) => $sent['text'] === 'Concluído 😀 delivery-timeout'));
+        $accepted = array_values(array_filter(Http::get('http://evolution:8080/_test/status')->json('sent'), fn ($sent) => $sent['text'] === "🤖 Codex:\nConcluído 😀 delivery-timeout"));
         $this->assertCount(1, $accepted);
         Http::post('http://evolution:8080/_test/mode', ['mode' => 'success'])->throw();
         $later = $this->ingress('blocked-delivery', 'blocked-delivery');

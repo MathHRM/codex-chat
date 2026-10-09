@@ -36,8 +36,10 @@ os serviços, valida a configuração, aplica migrations e configura/verifica a
 instância e o webhook da Evolution. Depois conduz o login ChatGPT por código no
 navegador e exibe o QR do WhatsApp no terminal interativo. Também salva uma cópia
 em `.codex/setup/whatsapp-qr.png`, caso prefira abrir a imagem. Escaneie o QR
-em **Aparelhos conectados**, usando a conta WhatsApp do bot. Ela precisa
-ser diferente do número autorizado a enviar prompts no fluxo atual. Após o
+em **Aparelhos conectados**, usando a conta WhatsApp do bot. Para conversar
+consigo mesmo, use a própria conta e configure `BOT_OWNER_NUMBER` com seu número
+internacional, somente dígitos. Respostas do bot começam com `🤖 Codex:`; esse
+prefixo é reservado e ignorado como prompt para evitar loops. Após o
 pareamento, pressione Enter para verificar a conexão e remover o QR.
 
 A primeira execução pode demorar por downloads e compilação; execuções seguintes

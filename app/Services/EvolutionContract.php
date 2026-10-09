@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\Http;
 
 final class EvolutionContract
 {
+    public const BOT_MESSAGE_PREFIX = "🤖 Codex:\n";
+
     public const IMAGE = 'evoapicloud/evolution-api:v2.3.7@sha256:1bd8afc4a6cf48822e6cf02469aeae7bd35a12a6b616eacd1291926307f4d339';
 
     public function __construct(
@@ -24,7 +26,7 @@ final class EvolutionContract
         }
 
         $data = $payload['data'] ?? null;
-        if (! is_array($data) || ! is_array($key = $data['key'] ?? null) || ($key['fromMe'] ?? null) !== false) {
+        if (! is_array($data) || ! is_array($key = $data['key'] ?? null) || ! is_bool($key['fromMe'] ?? null)) {
             return null;
         }
         $id = $key['id'] ?? null;
@@ -52,6 +54,10 @@ final class EvolutionContract
             return null;
         }
 
+        if (str_starts_with(ltrim($text), rtrim(self::BOT_MESSAGE_PREFIX))) {
+            return null;
+        }
+
         return ['external_id' => $id, 'instance' => $this->instance, 'number' => $this->ownerNumber, 'text' => $text];
     }
 
@@ -70,7 +76,7 @@ final class EvolutionContract
             ->acceptJson()->timeout(15)->connectTimeout(5)
             ->post(rtrim($this->baseUrl, '/').'/message/sendText/'.rawurlencode($instance), [
                 'number' => $number,
-                'text' => $text,
+                'text' => self::BOT_MESSAGE_PREFIX.$text,
                 'linkPreview' => false,
             ]);
     }
