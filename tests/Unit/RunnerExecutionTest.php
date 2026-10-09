@@ -101,16 +101,20 @@ CODE);
             $this->assertFalse($capture['token']);
             $this->assertSame('-', end($capture['argv']));
             $this->assertContains('approval_policy="never"', $capture['argv']);
+            $this->assertContains('model="gpt-6-luna"', $capture['argv']);
+            $this->assertContains('model_reasoning_effort="low"', $capture['argv']);
             $this->assertContains('sandbox_mode="workspace-write"', $capture['argv']);
             $this->assertNotContains('--last', $capture['argv']);
             $this->assertNotContains('--ephemeral', $capture['argv']);
             $this->assertFileDoesNotExist($this->directory.'/should-not-exist');
             $this->store->accept('12345678-1234-1234-1234-123456789013', 'followup', $this->session);
             $run = $this->store->find('12345678-1234-1234-1234-123456789013');
-            $this->executor()->execute($run);
+            $this->executor('custom-model', 'medium')->execute($run);
             $capture = json_decode(file_get_contents($this->directory.'/capture.json'), true);
             $this->assertContains('resume', $capture['argv']);
             $this->assertContains($this->session, $capture['argv']);
+            $this->assertContains('model="custom-model"', $capture['argv']);
+            $this->assertContains('model_reasoning_effort="medium"', $capture['argv']);
         } finally {
             putenv('RUNNER_TOKEN');
         }
@@ -156,9 +160,9 @@ CODE);
         chmod($this->directory.'/fake-codex', 0700);
     }
 
-    private function executor(): CodexProcess
+    private function executor(string $model = 'gpt-6-luna', string $reasoningEffort = 'low'): CodexProcess
     {
-        return new CodexProcess($this->store, $this->directory, $this->directory, 1, $this->directory.'/fake-codex');
+        return new CodexProcess($this->store, $this->directory, $this->directory, 1, $this->directory.'/fake-codex', $model, $reasoningEffort);
     }
 
     /** @return array<string, mixed> */

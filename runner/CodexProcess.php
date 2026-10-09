@@ -6,7 +6,7 @@ namespace BotRunner;
 
 final class CodexProcess
 {
-    public function __construct(private readonly RunStore $store, private readonly string $workspace, private readonly string $state, private readonly int $timeout, private readonly string $binary = 'codex') {}
+    public function __construct(private readonly RunStore $store, private readonly string $workspace, private readonly string $state, private readonly int $timeout, private readonly string $binary = 'codex', private readonly string $model = 'gpt-6-luna', private readonly string $reasoningEffort = 'low') {}
 
     /** @param array<string, mixed> $run
      * @return array<string, mixed>
@@ -20,7 +20,7 @@ final class CodexProcess
         if (is_file($output)) {
             unlink($output);
         }
-        $arguments = ['setsid', $this->binary, 'exec', '-c', 'approval_policy="never"', '-c', 'sandbox_mode="workspace-write"', '-c', 'sandbox_workspace_write.network_access=false', '--cd', $this->workspace];
+        $arguments = ['setsid', $this->binary, 'exec', '-c', 'model='.json_encode($this->model, JSON_THROW_ON_ERROR), '-c', 'model_reasoning_effort='.json_encode($this->reasoningEffort, JSON_THROW_ON_ERROR), '-c', 'approval_policy="never"', '-c', 'sandbox_mode="workspace-write"', '-c', 'sandbox_workspace_write.network_access=false', '--cd', $this->workspace];
         if ($run['session_id'] !== null) {
             $arguments[] = 'resume';
         }

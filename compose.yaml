@@ -81,6 +81,8 @@ services:
       BOT_TIMEOUT_SECONDS: ${BOT_TIMEOUT_SECONDS:-300}
       BOT_PROMPT_MAX_BYTES: ${BOT_PROMPT_MAX_BYTES:-16384}
       CODEX_HOME: /codex
+      CODEX_MODEL: ${CODEX_MODEL:-gpt-6-luna}
+      CODEX_REASONING_EFFORT: ${CODEX_REASONING_EFFORT:-low}
     networks: [execution]
     volumes:
       - workspace:/workspace

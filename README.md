@@ -24,6 +24,11 @@ Nenhuma credencial operacional é incluída na imagem.
 
 ## Configuração e stack local
 
+O modelo do runner é definido por `CODEX_MODEL` no `.env`, com padrão
+`gpt-6-luna`. O esforço de raciocínio é definido por `CODEX_REASONING_EFFORT`,
+com padrão `low`, sem modo rápido. Use um nível aceito pelo modelo escolhido.
+Após alterar essas variáveis, recrie o runner com `docker compose up -d codex-runner`.
+
 Para preparar a stack e conduzir as duas autenticações, execute no terminal:
 
 ```sh

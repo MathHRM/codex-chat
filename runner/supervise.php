@@ -11,7 +11,7 @@ require_once __DIR__.'/CodexProcess.php';
 
 $store = new RunStore('/state/runs');
 $supervisor = new Supervisor($store, '/state/supervisor.lock');
-$executor = new CodexProcess($store, '/workspace', '/state', (int) (getenv('BOT_TIMEOUT_SECONDS') ?: 300));
+$executor = new CodexProcess($store, '/workspace', '/state', (int) (getenv('BOT_TIMEOUT_SECONDS') ?: 300), model: (string) (getenv('CODEX_MODEL') ?: 'gpt-6-luna'), reasoningEffort: (string) (getenv('CODEX_REASONING_EFFORT') ?: 'low'));
 $stopping = false;
 pcntl_async_signals(true);
 $stop = static function () use (&$stopping): void {
